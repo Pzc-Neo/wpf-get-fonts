@@ -1,9 +1,17 @@
-﻿using System.Linq;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using HandyControl.Controls;
+using HandyControl.Themes;
+using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Markup;
 using System.Windows.Media;
+using System.Windows.Navigation;
+using wpf_get_fonts.Messages;
+using wpf_get_fonts.ViewModels;
 
 namespace wpf_get_fonts
 {
@@ -15,14 +23,15 @@ namespace wpf_get_fonts
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = new MainWindowViewModel();
         }
 
         private void button_get_fonts_Click(object sender, RoutedEventArgs e)
         {
-            GetFontsStr();
+            GetFonts();
         }
 
-        private void GetFontsStr()
+        private void GetFonts()
         {
             var fontFamilies = Fonts.SystemFontFamilies;
 
@@ -31,6 +40,7 @@ namespace wpf_get_fonts
 
             // 使用 StringBuilder 来构建字体字符串
             StringBuilder fontsStringBuilder = new StringBuilder();
+            ObservableCollection<string> fonts = new ObservableCollection<string>();
 
             var p = new Paragraph();
             foreach (FontFamily fontfamily in sortedFontFamilies)
@@ -39,10 +49,12 @@ namespace wpf_get_fonts
                 if (fontName == null)
                     fontName = fontfamily.ToString();
                 fontsStringBuilder.AppendLine(fontName);
+                fonts.Add(fontName);
             }
+            WeakReferenceMessenger.Default.Send(new SetFontsMessage(fonts));
 
             // 更新 UI
-            textBox_fonts.Text = fontsStringBuilder.ToString();
+            //textBox_fonts.Text = fontsStringBuilder.ToString();
             textBlock_fonts_count.Text = "共" + fontFamilies.Count() + "个字体";
         }
         public string GetFontName(FontFamily fontfamily)
@@ -73,13 +85,25 @@ namespace wpf_get_fonts
 
         private void button_copy_fonts_Click(object sender, RoutedEventArgs e)
         {
-            Clipboard.SetText(textBox_fonts.Text);
+
+            //Clipboard.SetText(textBox_fonts.Text);
+            WeakReferenceMessenger.Default.Send(new CopyFontsToClipboardMessage());
             HandyControl.Controls.MessageBox.Show("已复制到剪贴板！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            GetFontsStr();
+            GetFonts();
+        }
+
+        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = e.Uri.ToString(),
+                UseShellExecute = true
+            });
+            e.Handled = true;
         }
     }
 }
